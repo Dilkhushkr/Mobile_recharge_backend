@@ -1,6 +1,9 @@
-import { Request, Response } from 'express'
+import  { Request, Response } from 'express'
 import User from '../model/userModel'
 import twilio from 'twilio';
+import jwt from 'jsonwebtoken';
+
+
 
 
 const client = twilio(
@@ -56,6 +59,72 @@ export const sendOTP = async (req: Request, res: Response) => {
     }
 
 }
+
+export const verifyOTP = async (req : Request,res : Response)=>{
+    try{
+        const {phone , otp} = req.body;
+        const user = await User.findOne({
+            phone
+        });
+
+        if(!user){
+            return res.status(400).json({
+                message : "User not found "
+            })
+        }
+
+        if(user.otp !== otp){
+            return res.status(400).json({
+                message : "Invalid OTP"
+            })
+        }
+
+        user.isVerified = true;
+        user.otp = null
+        await user.save();
+
+
+        const token = jwt.sign(
+            {id : user._id, phone : user.phone},
+            process.env.JWT_SECRET ,
+            {expiresIn : '1d'},
+        )
+        res.cookie("token", token,{
+            httpOnly : true,
+            secure : process.env.NODE_ENV === 'production',
+            sameSite : 'lax',
+            maxAge: 24 * 60 * 60 * 1000,
+          }
+        )
+
+
+        res.json({
+            message : "OTP verified successfully",
+            user : {phone : user.phone, isVerified : user.isVerified}
+        })
+
+
+    }catch(err){
+
+        res.status(500).json({
+            message : "Internal Server Error"
+        })
+
+    }
+
+}
+
+
+export const getProfile = (req: Request, res: Response) => {
+    res.json({
+        message: "User profile fetched successfully",
+        user: req.user,
+    });
+}
+
+
+
+
 
 
 
