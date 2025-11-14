@@ -2,9 +2,7 @@ import  { Request, Response } from 'express'
 import User from '../model/userModel'
 import twilio from 'twilio';
 import jwt from 'jsonwebtoken';
-
-
-
+import { CustomRequest } from '../types/express';
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -50,6 +48,7 @@ export const sendOTP = async (req: Request, res: Response) => {
         console.log(`OTP for ${phone} is ${otp}`)
         res.status(200).json({
             message : "OTP sent successfully",
+            
         });
 
     }catch(err){
@@ -84,22 +83,28 @@ export const verifyOTP = async (req : Request,res : Response)=>{
         await user.save();
 
 
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            return res.status(500).json({ message: "JWT secret not configured" });
+        }
+
         const token = jwt.sign(
-            {id : user._id, phone : user.phone},
-            process.env.JWT_SECRET ,
-            {expiresIn : '1d'},
-        )
-        res.cookie("token", token,{
-            httpOnly : true,
-            secure : process.env.NODE_ENV === 'production',
-            sameSite : 'lax',
-            maxAge: 24 * 60 * 60 * 1000,
-          }
-        )
+            { id: user._id, phone: user.phone },
+            jwtSecret,
+            { expiresIn: '1d' }
+        );
+        console.log("Generated JWT Token:", token);
+
+     res.cookie("token", token, {
+       httpOnly: true,
+       secure:process.env.NODE_ENV === "production",
+       sameSite:process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
 
 
         res.json({
             message : "OTP verified successfully",
+            token,
             user : {phone : user.phone, isVerified : user.isVerified}
         })
 
@@ -115,7 +120,7 @@ export const verifyOTP = async (req : Request,res : Response)=>{
 }
 
 
-export const getProfile = (req: Request, res: Response) => {
+export const getProfile = (req: CustomRequest, res: Response ) => {
     res.json({
         message: "User profile fetched successfully",
         user: req.user,
@@ -124,7 +129,19 @@ export const getProfile = (req: Request, res: Response) => {
 
 
 
+export const logout = (req : Request , res : Response) => {
 
+    res.clearCookie("token",{
+        httpOnly: true,
+        secure: false, // true in production (HTTPS)
+        sameSite: "strict",
+    })
+
+    res.json({
+        message : "Logged out successfully"
+    })  
+
+}
 
 
 
