@@ -20,8 +20,8 @@ const bookingSchema = new mongoose.Schema({
     date: {
         type: Date,
         required: true,
-    },
-})
+    }
+},{ timestamps: true })
 
 const Booking = mongoose.model("Booking", bookingSchema);
 

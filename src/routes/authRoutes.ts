@@ -11,9 +11,7 @@ router.get('/profile',protect, getProfile);
 router.post('/logout', logout);
 
 
-router.post('/create-booking', protect, createBooking);
-
-
+router.post('/create-booking', protect, createBooking as any);
 
 
 export default router;

@@ -1,11 +1,10 @@
 import express from  "express";
 import authRoutes from './routes/authRoutes';
+import  createBookingRoutes  from "./routes/CreateBookingRoutes";
 import cookieParser from 'cookie-parser';
 import cors from 'cors'
 
 const app = express();
-app.use(express.json());
-app.use(cookieParser());
 app.use(cors({
 
   origin: 'http://localhost:5173', 
@@ -15,11 +14,17 @@ app.use(cors({
 
 }))
 
+app.use(express.json());
+app.use(cookieParser());
+
 app.get('/', (req, res) => {
   res.send('Hello World from Express!');
 });
 
 
+
 app.use('/api/auth',authRoutes);
+app.use('/api/booking', createBookingRoutes);
+
 
 export default app;
