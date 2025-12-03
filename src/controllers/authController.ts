@@ -5,6 +5,7 @@ import twilio from 'twilio';
 import jwt from 'jsonwebtoken';
 import { CustomRequest } from '../types/express';
 import bcrypt from "bcrypt";
+import Boooking from '../model/bookingModel';
 
 
 
@@ -231,6 +232,23 @@ export const logout = (req : Request , res : Response) => {
 
 }
 
+export const deleteBooking = async (req: Request, res: Response) => {
 
+    try{
+
+        await Boooking.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            message : "Booking deleted successfully"
+        })
+
+    }
+    catch(err){
+        res.status(500).json({
+            err : "Internal Server Error"
+        })
+    }
+
+}
 
 
