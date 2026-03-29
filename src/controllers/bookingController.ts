@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Booking from "../model/bookingModel";
+import {getIO} from '../socket';
 
 export const createBooking = async (req: Request, res: Response) => {
   try {
@@ -18,6 +19,10 @@ export const createBooking = async (req: Request, res: Response) => {
       endLocation,
       date,
     });
+
+    const io = getIO();
+
+    io.to("admins").emit("booking:created", savedBooking);
 
     res.status(201).json({
       message: "Booking created successfully",

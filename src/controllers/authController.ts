@@ -1,8 +1,12 @@
 import  { Request, Response } from 'express'
 import User from '../model/userModel'
+import SingnupModel from '../model/signupModel'
 import twilio from 'twilio';
 import jwt from 'jsonwebtoken';
 import { CustomRequest } from '../types/express';
+import bcrypt from "bcrypt";
+import Booking from '../model/bookingModel';
+
 
 
 const client = twilio(
@@ -18,7 +22,7 @@ export const sendOTP = async (req: Request, res: Response) => {
 
         const {phone} = req.body;
         if(!phone){
-            return res.status(400).json({message: "Phone number is required"})
+            return res.status(400).json({message: "Phone number is.. required"})
         }
         
         let user = await User.findOne({
@@ -122,6 +126,92 @@ export const verifyOTP = async (req : Request,res : Response)=>{
 
 }
 
+export const singup = async (req: Request , res : Response) => {
+
+    try{
+        
+    const {name , email, password} = req.body;
+
+    const existingUser = await SingnupModel.findOne({
+        email
+    })
+
+    if(existingUser){
+        return res.status(400)
+        .json({
+            message : "User already exists"
+        })
+    }
+
+    const hashedPass = await bcrypt.hash(password, 10);
+
+    const newUser = new SingnupModel({
+        name,
+        email,
+        password : hashedPass
+    })
+
+    await newUser.save();
+
+    res.status(201).json({
+        message : "User registered successfully"
+    })
+
+
+    }catch(err : any){
+        res.status(500).json({
+            error : err.message
+        })
+
+    }
+
+}
+
+export const login = async (req: Request , res : Response) => {
+    console.time("login_process");
+
+    const {email, password} = req.body;
+    console.time("database");
+    const newUser = await SingnupModel.findOne({
+        email
+    })
+    console.timeEnd("database");
+    if(!newUser){
+        return res.status(400).json({
+            message : "User not found "
+        })
+    }
+
+    const isMatch = await bcrypt.compare(password, newUser.password);
+    if(!isMatch){
+        return res.status(400)
+        .json({
+            message : "Invalid Password"
+        })
+    }
+
+    const token  = jwt.sign(
+        {id : newUser._id, email : newUser.email},
+        process.env.JWT_SECRET || '',
+        {expiresIn : '1d'}
+    )
+    console.time("token");
+    res.cookie("token", token, {
+       httpOnly: true,
+       secure:process.env.NODE_ENV === "production",
+       sameSite:process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, 
+        path: "/"
+    });
+    console.timeEnd("token");
+    res.json({
+        message : "Login successful",
+        token,
+        user : {name : newUser.name, email : newUser.email}
+    })
+
+    console.timeEnd("login_process");
+}
 
 export const getProfile = (req: CustomRequest, res: Response ) => {
     res.json({
@@ -146,6 +236,27 @@ export const logout = (req : Request , res : Response) => {
 
 }
 
+export const deleteBooking = async (req: Request, res: Response) => {
 
+    try{
+        
+        const deleted = await Booking.findByIdAndDelete(req.params.id);
+
+        if (!deleted) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        res.status(200).json({
+            message : "Booking deleted successfully"
+        })
+
+    }
+    catch(err){
+        res.status(500).json({
+            err : "Internal Server Error"
+        })
+    }
+
+}
 
 

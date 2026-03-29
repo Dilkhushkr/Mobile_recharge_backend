@@ -1,8 +1,8 @@
 import { Request } from 'express';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export interface IUser extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   phone: string;
   otp?: string | null;
   isVerified?: boolean;
