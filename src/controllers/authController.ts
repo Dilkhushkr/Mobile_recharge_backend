@@ -5,7 +5,7 @@ import twilio from 'twilio';
 import jwt from 'jsonwebtoken';
 import { CustomRequest } from '../types/express';
 import bcrypt from "bcrypt";
-import Boooking from '../model/bookingModel';
+import Booking from '../model/bookingModel';
 
 
 
@@ -22,7 +22,7 @@ export const sendOTP = async (req: Request, res: Response) => {
 
         const {phone} = req.body;
         if(!phone){
-            return res.status(400).json({message: "Phone number is required"})
+            return res.status(400).json({message: "Phone number is.. required"})
         }
         
         let user = await User.findOne({
@@ -168,12 +168,14 @@ export const singup = async (req: Request , res : Response) => {
 }
 
 export const login = async (req: Request , res : Response) => {
+    console.time("login_process");
 
     const {email, password} = req.body;
-
+    console.time("database");
     const newUser = await SingnupModel.findOne({
         email
     })
+    console.timeEnd("database");
     if(!newUser){
         return res.status(400).json({
             message : "User not found "
@@ -193,6 +195,7 @@ export const login = async (req: Request , res : Response) => {
         process.env.JWT_SECRET || '',
         {expiresIn : '1d'}
     )
+    console.time("token");
     res.cookie("token", token, {
        httpOnly: true,
        secure:process.env.NODE_ENV === "production",
@@ -200,13 +203,14 @@ export const login = async (req: Request , res : Response) => {
         maxAge: 7 * 24 * 60 * 60 * 1000, 
         path: "/"
     });
-
+    console.timeEnd("token");
     res.json({
         message : "Login successful",
         token,
         user : {name : newUser.name, email : newUser.email}
     })
 
+    console.timeEnd("login_process");
 }
 
 export const getProfile = (req: CustomRequest, res: Response ) => {
@@ -235,8 +239,12 @@ export const logout = (req : Request , res : Response) => {
 export const deleteBooking = async (req: Request, res: Response) => {
 
     try{
+        
+        const deleted = await Booking.findByIdAndDelete(req.params.id);
 
-        await Boooking.findByIdAndDelete(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
 
         res.status(200).json({
             message : "Booking deleted successfully"
